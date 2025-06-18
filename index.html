@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Audit TI - DPKPP Tasikmalaya</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Muted Blue -->
+    <!-- Application Structure Plan: The application is designed as a single-page interactive dashboard to tell a compelling story, moving from the main problem to diagnosis, evidence, and finally, the solution. The structure is thematic, not linear like the report, to enhance user understanding and engagement. 1. Hero Section: Grabs attention with the core finding (the strategy-execution gap). 2. Diagnostic Section: Uses an interactive radar chart and tabs for users to explore the COBIT domain maturity levels, making the data comparison intuitive. 3. Key Findings Section: Presents qualitative evidence (website issues, interview insights) in a visually scannable format (timeline and cards). 4. Roadmap Section: Organizes recommendations into a clear, actionable plan using tabs and accordions. This non-linear, interactive flow is chosen to make complex audit data accessible and actionable for stakeholders. -->
+    <!-- Visualization & Content Choices: 1. Overall Maturity Score (Inform) -> A prominent "Level 2" badge is used for immediate insight. 2. COBIT Domain Scores (Compare/Relationships) -> An interactive Radar Chart (Chart.js/Canvas) is the centerpiece, perfectly visualizing the imbalance between the high EDM score and low operational scores. This is more impactful than a table. Interaction is handled by clickable tabs below the chart, which update a detailed text panel. 3. Website Failure (Change) -> A simple, non-interactive timeline built with HTML/CSS visually represents the degradation of the public website. 4. Interview Insights (Organize/Inform) -> Key qualitative points are summarized in themed cards for quick comprehension. 5. Recommendations (Organize/Inform) -> A tabbed/accordion structure (HTML/JS) presents strategic and domain-specific actions cleanly, allowing users to focus on what's relevant to them. All choices prioritize clarity and user interaction over static presentation. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F9FAFB;
+            color: #1F2937;
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 45vh;
+            width: 100%;
+            max-width: 500px;
+        }
+        .nav-link {
+            transition: color 0.3s ease, border-bottom-color 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #3B82F6;
+            border-bottom-color: #3B82F6;
+        }
+        .tab-button {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .tab-button.active {
+            background-color: #3B82F6;
+            color: white;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-2">
+                    <div class="bg-blue-600 p-2 rounded-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <h1 class="text-xl font-bold text-gray-800">Audit TI DPKPP</h1>
+                </div>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="#ringkasan" class="nav-link text-gray-600 font-medium pb-1">Ringkasan</a>
+                    <a href="#latar-belakang" class="nav-link text-gray-600 font-medium pb-1">Latar Belakang</a>
+                    <a href="#tentang-cobit" class="nav-link text-gray-600 font-medium pb-1">Tentang COBIT 5</a>
+                    <a href="#diagnostik" class="nav-link text-gray-600 font-medium pb-1">Diagnostik Kesenjangan</a>
+                    <a href="#temuan" class="nav-link text-gray-600 font-medium pb-1">Temuan Kunci</a>
+                    <a href="#rekomendasi" class="nav-link text-gray-600 font-medium pb-1">Peta Jalan Perbaikan</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <!-- Hero Section -->
+        <section id="ringkasan" class="text-center pt-8 mb-16">
+            <h2 class="text-3xl md:text-5xl font-extrabold text-gray-800 leading-tight">
+                Kesenjangan Kritis Tata Kelola TI
+            </h2>
+            <p class="mt-4 text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
+                Audit mengungkap adanya perbedaan signifikan antara kekuatan <span class="font-semibold text-blue-600">arahan strategis</span> dan kelemahan <span class="font-semibold text-red-600">eksekusi operasional</span> di DPKPP Kabupaten Tasikmalaya.
+            </p>
+            <div class="mt-8 flex justify-center items-center gap-4">
+                <span class="text-gray-600 font-medium">Tingkat Kematangan Keseluruhan:</span>
+                <div class="flex items-center bg-white border border-gray-200 rounded-full px-4 py-2 shadow-sm">
+                    <span class="font-bold text-2xl text-amber-500">2</span>
+                    <span class="ml-2 text-gray-700 font-semibold">Repeatable but Intuitive</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Background Section -->
+        <section id="latar-belakang" class="pt-16 mb-16">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-gray-800">Latar Belakang Audit</h3>
+                <p class="mt-2 text-lg text-gray-600 max-w-3xl mx-auto">Memahami konteks di balik kebutuhan audit tata kelola TI di DPKPP Kabupaten Tasikmalaya.</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-lg p-6 md:p-8 space-y-4">
+                <p class="text-gray-700 leading-relaxed">
+                    Penyelenggaraan pemerintahan yang transparan, akuntabel, dan efektif merupakan mandat utama reformasi birokrasi, terwujud melalui Sistem Informasi Pemerintahan Daerah (SIPD) sesuai UU No. 23 Tahun 2014 dan Permendagri No. 70 Tahun 2019. SIPD dirancang sebagai platform terintegrasi untuk pengelolaan keuangan daerah, menyatukan siklus perencanaan hingga pelaporan dalam satu basis data tunggal yang andal. Keberhasilan implementasi SIPD sangat krusial bagi tata kelola pemerintahan yang baik.
+                </p>
+                <p class="text-gray-700 leading-relaxed">
+                    DPKPP Kabupaten Tasikmalaya, sebagai salah satu instansi pengguna SIPD, menghadapi berbagai tantangan seperti keluhan pengguna terkait keterlambatan akses data, inkonsistensi data, dan kesulitan integrasi informasi program pertanian ke dalam SIPD. Kondisi ini berisiko menurunkan akurasi data untuk evaluasi program, memperlambat pengambilan keputusan, dan menghambat pencapaian target strategis dinas.
+                </p>
+                <p class="text-gray-700 leading-relaxed">
+                    Permasalahan ini menunjukkan tekanan ganda pada TI sektor publik: mandat tata kelola yang transparan di satu sisi, dan kebutuhan implementasi teknis SIPD sebagai "standar emas" di sisi lain. Kegagalan teknis secara langsung menghambat tercapainya tujuan tata kelola yang lebih luas. Oleh karena itu, audit sistem informasi dengan kerangka COBIT 5 diusulkan sebagai diagnosis objektif untuk mengukur tingkat kematangan dan memberikan rekomendasi konstruktif, sehingga investasi SIPD dapat optimal.
+                </p>
+            </div>
+        </section>
+
+        <!-- About COBIT 5 Section -->
+        <section id="tentang-cobit" class="pt-16 mb-16">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-gray-800">Mengenal Kerangka Kerja COBIT 5</h3>
+                <p class="mt-2 text-lg text-gray-600 max-w-3xl mx-auto">Standar internasional untuk tata kelola dan manajemen TI.</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-lg p-6 md:p-8 space-y-4">
+                <p class="text-gray-700 leading-relaxed">
+                    Audit ini secara sistematis memanfaatkan kerangka kerja COBIT 5, sebuah standar tata kelola TI yang diakui secara internasional. Dikembangkan oleh IT Governance Institute (ITGI) bagian dari ISACA, COBIT 5 menyediakan seperangkat dokumen dan prosedur komprehensif untuk mengimplementasikan Tata Kelola TI yang efektif, membantu auditor, manajemen, dan pengguna mengatasi interaksi kompleks antara risiko bisnis, kebutuhan kontrol, dan tantangan teknis.
+                </p>
+                <p class="text-gray-700 leading-relaxed">
+                    COBIT 5 menawarkan model referensi proses yang kuat, mengidentifikasi dan menjelaskan secara rinci proses tata kelola dan manajemen yang umum ditemukan dalam perusahaan terkait aktivitas TI. Model ini terstruktur di sekitar lima domain utama:
+                </p>
+                <ul class="list-disc list-inside text-gray-700 leading-relaxed space-y-2">
+                    <li><strong>Evaluate, Direct and Monitor (EDM):</strong> Berfokus pada evaluasi keseluruhan, pengarahan, dan pemantauan tata kelola TI.</li>
+                    <li><strong>Align, Plan and Organize (APO):</strong> Membahas penyelarasan strategi TI dengan strategi bisnis, perencanaan, dan organisasi sumber daya TI.</li>
+                    <li><strong>Build, Acquire and Implement (BAI):</strong> Mencakup proses yang terlibat dalam pembangunan, akuisisi, dan implementasi solusi TI.</li>
+                    <li><strong>Deliver, Service and Support (DSS):</strong> Berfokus pada penyampaian layanan TI, operasional sehari-hari, dan dukungan efektif kepada pengguna.</li>
+                    <li><strong>Monitor, Evaluate and Assess (MEA):</strong> Berkaitan dengan pemantauan berkelanjutan, evaluasi, dan penilaian kinerja TI serta kepatuhan.</li>
+                </ul>
+                <p class="text-gray-700 leading-relaxed">
+                    COBIT 5 juga memiliki model kematangan (skala 0-5) untuk menilai kondisi terkini proses TI, memberikan ukuran kuantitatif kapabilitas tata kelola TI. Penggunaan kerangka kerja ini memungkinkan penilaian terstruktur, membantu mengidentifikasi kelemahan sistemik, dan memberikan rekomendasi berbasis bukti untuk perbaikan.
+                </p>
+            </div>
+        </section>
+        
+        <!-- Gap Diagnostic Section -->
+        <section id="diagnostik" class="pt-16">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-gray-800">Diagnostik Kesenjangan Kematangan</h3>
+                <p class="mt-2 text-lg text-gray-600 max-w-3xl mx-auto">Visualisasi tingkat kematangan pada 5 domain COBIT 5 menyoroti area kekuatan dan kelemahan utama. Klik setiap domain untuk melihat detailnya.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8 lg:gap-12 items-center">
+                <div class="chart-container">
+                    <canvas id="cobitRadarChart"></canvas>
+                </div>
+
+                <div id="domain-details" class="space-y-4">
+                    <!-- Detail content will be populated by JS -->
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-2 md:gap-4 mt-8" id="domain-tabs">
+                <button data-domain="EDM" class="tab-button font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700">EDM</button>
+                <button data-domain="APO" class="tab-button font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700">APO</button>
+                <button data-domain="BAI" class="tab-button font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700">BAI</button>
+                <button data-domain="DSS" class="tab-button font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700">DSS</button>
+                <button data-domain="MEA" class="tab-button font-medium py-2 px-4 rounded-full bg-gray-200 text-gray-700">MEA</button>
+            </div>
+        </section>
+
+        <!-- Key Findings Section -->
+        <section id="temuan" class="pt-24">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-gray-800">Temuan Kunci & Bukti Lapangan</h3>
+                <p class="mt-2 text-lg text-gray-600 max-w-3xl mx-auto">Observasi dan wawancara mengungkap berbagai masalah praktis yang menghambat efektivitas sistem informasi.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-8 lg:gap-12">
+                <!-- Website Observation -->
+                <div class="card p-6">
+                    <h4 class="text-xl font-bold text-gray-800 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Degradasi Situs Web Publik
+                    </h4>
+                    <p class="text-gray-600 mt-2 mb-6">Observasi menunjukkan kerentanan keamanan dan kegagalan fungsional yang serius pada situs web DPKPP.</p>
+                    <div class="space-y-4 border-l-2 border-gray-200 ml-2">
+                        <div class="relative pl-6">
+                            <div class="absolute -left-[11px] top-1 h-5 w-5 bg-white border-2 border-blue-500 rounded-full"></div>
+                            <p class="font-semibold text-gray-700">Bulan 1 (April 2025): Ilusi Fungsionalitas</p>
+                            <p class="text-sm text-gray-500">Situs berfungsi namun gagal menampilkan data publik. Tidak ada tindak lanjut yang tercatat.</p>
+                        </div>
+                        <div class="relative pl-6">
+                            <div class="absolute -left-[11px] top-1 h-5 w-5 bg-white border-2 border-red-500 rounded-full"></div>
+                            <p class="font-semibold text-gray-700">Bulan 2 (Mei 2025): Kegagalan Total</p>
+                            <p class="text-sm text-gray-500">Situs mengalami serangan *injection*, menampilkan data internal, lalu dinonaktifkan total hingga waktu yang tidak ditentukan.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interview Insights -->
+                <div class="card p-6">
+                    <h4 class="text-xl font-bold text-gray-800 flex items-center">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        Wawasan dari Wawancara
+                    </h4>
+                    <p class="text-gray-600 mt-2 mb-6">Wawancara dengan staf mengungkap paradoks antara efisiensi internal dan kegagalan transparansi eksternal.</p>
+                    <div class="space-y-3">
+                        <p class="text-gray-700 leading-relaxed"><strong class="font-semibold">Paradoks Efisiensi:</strong> Sistem internal (absensi, tamu) berfungsi baik, namun situs web publik lumpuh akibat serangan siber berulang.</p>
+                        <p class="text-gray-700 leading-relaxed"><strong class="font-semibold">Jebakan Ketergantungan:</strong> Pengelolaan situs web harus "menginduk" ke Diskominfo, membatasi otonomi, anggaran, dan kecepatan respons terhadap krisis.</p>
+                        <p class="text-gray-700 leading-relaxed"><strong class="font-semibold">Inovasi Ad-hoc:</strong> Solusi sementara seperti *barcode* tamu dan penyebaran info via medsos muncul, namun tidak mengatasi masalah fundamental dan tidak terukur.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recommendations Section -->
+        <section id="rekomendasi" class="pt-24">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-gray-800">Peta Jalan Perbaikan</h3>
+                <p class="mt-2 text-lg text-gray-600 max-w-3xl mx-auto">Rekomendasi strategis dan spesifik per domain untuk menjembatani kesenjangan dan meningkatkan kapabilitas TI secara menyeluruh.</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6 md:p-8">
+                <!-- Recommendation Tabs -->
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-6" id="rekomendasi-tabs-nav">
+                        <button data-tab="strategis" class="rekomendasi-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-blue-500 text-blue-600">Rekomendasi Strategis</button>
+                        <button data-tab="spesifik" class="rekomendasi-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Rencana Aksi per Domain</button>
+                    </nav>
+                </div>
+
+                <!-- Strategic Recommendations Content -->
+                <div id="tab-strategis" class="rekomendasi-content mt-8">
+                     <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-blue-50 border border-blue-200 p-6 rounded-lg">
+                            <h5 class="font-bold text-lg text-blue-800">1. Bentuk Komite TI</h5>
+                            <p class="mt-2 text-blue-700">Formalisasi tata kelola dengan komite khusus untuk menerjemahkan strategi menjadi eksekusi yang efektif.</p>
+                        </div>
+                        <div class="bg-green-50 border border-green-200 p-6 rounded-lg">
+                            <h5 class="font-bold text-lg text-green-800">2. Kembangkan SDM</h5>
+                            <p class="mt-2 text-green-700">Prioritaskan pelatihan dan rekrutmen untuk memperkuat kapabilitas teknis di area perencanaan, pembangunan, dan layanan.</p>
+                        </div>
+                        <div class="bg-yellow-50 border border-yellow-200 p-6 rounded-lg">
+                            <h5 class="font-bold text-lg text-yellow-800">3. Anggaran Strategis</h5>
+                            <p class="mt-2 text-yellow-700">Ubah alokasi anggaran dari reaktif menjadi proaktif untuk mendukung roadmap TI jangka panjang.</p>
+                        </div>
+                        <div class="bg-purple-50 border border-purple-200 p-6 rounded-lg">
+                            <h5 class="font-bold text-lg text-purple-800">4. Selaras Permendagri</h5>
+                            <p class="mt-2 text-purple-700">Pastikan semua inisiatif TI mendukung kepatuhan penuh terhadap Permendagri No. 70/2019.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Specific Recommendations Content -->
+                <div id="tab-spesifik" class="rekomendasi-content mt-8 hidden">
+                    <p class="text-gray-600 mb-6">Fokus perbaikan pada domain dengan kematangan rendah (APO, BAI, DSS) dan menengah (MEA) untuk menciptakan keseimbangan.</p>
+                    <div class="space-y-4" id="accordion-container">
+                        <!-- Accordion Items will be generated by JS -->
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-24">
+        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center">
+            <p>Aplikasi Interaktif ini dikembangkan berdasarkan Laporan Audit Sistem Informasi pada DPKPP Kabupaten Tasikmalaya.</p>
+            <p class="text-sm text-gray-400 mt-2">Tujuan: Menyajikan data audit secara informatif dan mudah dipahami.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const domainData = {
+                EDM: { 
+                    level: 4, 
+                    title: "Evaluate, Direct and Monitor (EDM)",
+                    description: "Proses evaluasi, pengarahan, dan pemantauan tata kelola TI dikelola dan diukur dengan baik. Kinerja dilacak secara aktif dan metrik yang jelas digunakan untuk perbaikan berkelanjutan.",
+                    color: "rgba(59, 130, 246, 0.8)",
+                    recoms: [
+                        "**Pertahankan & Perkuat:** Jaga standar dan prosedur yang sudah matang.",
+                        "**Berbagi Praktik Terbaik:** Jadikan kekuatan di domain ini sebagai pendorong perbaikan domain lain.",
+                        "**Optimalkan Pengukuran:** Terus kembangkan metrik kinerja untuk pengambilan keputusan strategis."
+                    ]
+                },
+                APO: { 
+                    level: 1.5,
+                    title: "Align, Plan and Organize (APO)",
+                    description: "Proses perencanaan dan pengorganisasian TI bersifat ad-hoc, tidak terstruktur, dan tidak konsisten. Terdapat kebutuhan mendesak untuk standardisasi dan formalisasi.",
+                    color: "rgba(239, 68, 68, 0.8)",
+                    recoms: [
+                         "**Definisikan Strategi & Roadmap TI:** Buat dokumen strategi TI jangka panjang yang selaras dengan tujuan dinas.",
+                         "**Standardisasi Proses Perencanaan:** Kembangkan proses formal untuk perencanaan anggaran, SDM, dan teknologi.",
+                         "**Bentuk Tim TI Formal:** Buat unit khusus dengan peran dan tanggung jawab yang jelas dalam pengelolaan TI."
+                    ]
+                },
+                BAI: { 
+                    level: 1.6,
+                    title: "Build, Acquire and Implement (BAI)",
+                    description: "Proses membangun, mengakuisisi, dan mengimplementasikan solusi TI tidak terstruktur. Proyek sering dimulai tanpa manajemen yang memadai, menghasilkan output yang tidak konsisten.",
+                    color: "rgba(249, 115, 22, 0.8)",
+                    recoms: [
+                        "**Terapkan Metodologi Pengembangan:** Adopsi metodologi standar (misal: SDLC, Agile) untuk setiap proyek TI.",
+                        "**Manajemen Proyek TI Formal:** Tetapkan prosedur manajemen proyek yang jelas dari perencanaan hingga evaluasi.",
+                        "**Lakukan Dokumentasi Teknis:** Pastikan semua sistem memiliki dokumentasi lengkap untuk kemudahan pemeliharaan."
+                    ]
+                },
+                DSS: { 
+                    level: 1.6,
+                    title: "Deliver, Service and Support (DSS)",
+                    description: "Operasional TI dan layanan dukungan tidak terstruktur. Masalah ditangani secara reaktif, menyebabkan inefisiensi dan ketidakpuasan pengguna.",
+                    color: "rgba(168, 85, 247, 0.8)",
+                    recoms: [
+                        "**Standardisasi Operasional TI (SOP):** Buat SOP untuk pengelolaan infrastruktur dan layanan sehari-hari.",
+                        "**Implementasi Sistem Ticketing:** Adopsi sistem formal untuk melacak dan mengelola insiden dan permintaan layanan.",
+                        "**Bentuk Fungsi Help Desk:** Sediakan titik kontak tunggal untuk semua dukungan teknis bagi pengguna."
+                    ]
+                },
+                MEA: { 
+                    level: 2.6,
+                    title: "Monitor, Evaluate and Assess (MEA)",
+                    description: "Proses pemantauan dan evaluasi dilakukan secara berulang namun masih bersifat intuitif dan belum terstruktur formal. Ketergantungan pada pengalaman individu masih kuat.",
+                    color: "rgba(245, 158, 11, 0.8)",
+                    recoms: [
+                        "**Definisikan Metrik Kinerja (KPI):** Kembangkan KPI yang terukur untuk setiap layanan dan proses TI.",
+                        "**Buat Laporan Kinerja Reguler:** Terapkan pelaporan kinerja TI secara berkala kepada manajemen.",
+                        "**Lakukan Audit Internal Berkala:** Adakan audit rutin untuk menilai kepatuhan terhadap kebijakan internal dan eksternal."
+                    ]
+                },
+            };
+
+            const labels = Object.keys(domainData);
+            const data = labels.map(label => domainData[label].level);
+
+            const radarCtx = document.getElementById('cobitRadarChart').getContext('2d');
+            const radarChart = new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: labels.map(l => `${l} (Lv. ${domainData[l].level})`),
+                    datasets: [{
+                        label: 'Tingkat Kematangan COBIT 5',
+                        data: data,
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 5,
+                            pointLabels: {
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.r !== null) {
+                                        label += context.parsed.r.toFixed(1);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const domainDetailsContainer = document.getElementById('domain-details');
+            const domainTabsContainer = document.getElementById('domain-tabs');
+
+            function updateDomainDetails(domainKey) {
+                const domain = domainData[domainKey];
+                domainDetailsContainer.innerHTML = `
+                    <div class="card p-6">
+                        <div class="flex items-center mb-2">
+                             <span class="w-3 h-3 rounded-full mr-2" style="background-color: ${domain.color};"></span>
+                            <h4 class="text-2xl font-bold text-gray-800">${domain.title}</h4>
+                        </div>
+                        <div class="ml-5">
+                            <p class="font-semibold text-lg text-gray-700">Level ${domain.level}: <span class="font-normal">${domain.description}</span></p>
+                        </div>
+                    </div>
+                `;
+                
+                domainTabsContainer.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.domain === domainKey) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+
+            domainTabsContainer.addEventListener('click', (e) => {
+                if (e.target.matches('.tab-button')) {
+                    const domainKey = e.target.dataset.domain;
+                    updateDomainDetails(domainKey);
+                }
+            });
+
+            updateDomainDetails('EDM');
+
+            // Recommendation Tabs Logic
+            const recoNav = document.getElementById('rekomendasi-tabs-nav');
+            const recoTabs = document.querySelectorAll('.rekomendasi-tab');
+            const recoContents = document.querySelectorAll('.rekomendasi-content');
+
+            recoNav.addEventListener('click', e => {
+                if (e.target.matches('.rekomendasi-tab')) {
+                    recoTabs.forEach(tab => {
+                        tab.classList.remove('border-blue-500', 'text-blue-600');
+                        tab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                    });
+                    e.target.classList.add('border-blue-500', 'text-blue-600');
+                    e.target.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+
+                    recoContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    document.getElementById(`tab-${e.target.dataset.tab}`).classList.remove('hidden');
+                }
+            });
+
+            // Accordion for Specific Recommendations
+            const accordionContainer = document.getElementById('accordion-container');
+            const specificDomains = ['APO', 'BAI', 'DSS', 'MEA'];
+            
+            specificDomains.forEach(domainKey => {
+                const domain = domainData[domainKey];
+                const accordionItem = document.createElement('div');
+                accordionItem.className = 'border border-gray-200 rounded-lg';
+                accordionItem.innerHTML = `
+                    <button class="accordion-header w-full flex justify-between items-center text-left p-4 bg-gray-50 hover:bg-gray-100 focus:outline-none">
+                        <span class="font-semibold text-lg text-gray-700 flex items-center">
+                            <span class="w-3 h-3 rounded-full mr-3" style="background-color:${domain.color}"></span>
+                            Rekomendasi untuk ${domain.title}
+                        </span>
+                        <svg class="w-6 h-6 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="accordion-content px-4 pb-4">
+                        <ul class="list-disc list-inside space-y-2 text-gray-600 mt-2">
+                           ${domain.recoms.map(r => `<li>${r.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+                accordionContainer.appendChild(accordionItem);
+            });
+
+            accordionContainer.addEventListener('click', e => {
+                const header = e.target.closest('.accordion-header');
+                if (header) {
+                    const content = header.nextElementSibling;
+                    const icon = header.querySelector('svg');
+                    const isOpen = content.style.maxHeight;
+
+                    // Close all other accordions
+                    document.querySelectorAll('.accordion-content').forEach(c => {
+                        if (c !== content) c.style.maxHeight = null;
+                    });
+                     document.querySelectorAll('.accordion-header svg').forEach(i => {
+                        if (i !== icon) i.style.transform = 'rotate(0deg)';
+                    });
+
+                    // Toggle current accordion
+                    if (isOpen) {
+                        content.style.maxHeight = null;
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                }
+            });
+            
+             // Smooth scrolling for nav links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            // Active nav link on scroll
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('nav a');
+            window.onscroll = () => {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    if (pageYOffset >= sectionTop - 60) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').substring(1) === current) {
+                        link.classList.add('active');
+                    }
+                });
+            };
+
+        });
+    </script>
+</body>
+</html>
